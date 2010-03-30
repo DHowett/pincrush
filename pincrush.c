@@ -7,7 +7,10 @@
 static png_uint_32 user_chunk_data[4];
 int unknown_chunk_read_cb(png_structp ptr, png_unknown_chunkp chunk) {
 	//png_uint_32 *my_chunk_data = (png_uint_32*)png_get_user_chunk_ptr(ptr);
-	printf("Unknown chunk?\n");
+	if(!strncmp((char*)chunk->name, "CgBI", 4)) {
+		fprintf(stderr, "This file is already crushed.\n");
+		exit(1);
+	}
 	return 1;
 }
 
@@ -22,11 +25,13 @@ void swap_and_premultiply_alpha_transform(png_structp ptr, png_row_infop row_inf
 }
 
 int main(int argc, char **argv, char **envp) {
-	if(argc < 2) {
-		ERR("Syntax: %s infile\n", argv[0]);
+	if(argc < 3) {
+		ERR("Syntax: %s infile outfile\n", argv[0]);
 	}
 
 	char *infilename = argv[1];
+	char *outfilename = argv[2];
+
 	FILE *fp_in = fopen(infilename, "rb");
 	if(!fp_in) {
 		ERR("Could not open %s.\n", infilename);
@@ -61,24 +66,16 @@ int main(int argc, char **argv, char **envp) {
 	}
 
 	png_init_io(read_ptr, fp_in);
-	png_set_sig_bytes(read_ptr, 8);
+	png_set_sig_bytes(read_ptr, 8); // Already read the signature.
 	png_set_read_user_chunk_fn(read_ptr, user_chunk_data, unknown_chunk_read_cb);
 
 	// Handle ALL unknown chunks.
 	png_set_keep_unknown_chunks(read_ptr, PNG_HANDLE_CHUNK_ALWAYS, NULL, 0);
 
-	// Take the easy way out (maybe)
-	//png_read_png(read_ptr, read_info, PNG_TRANSFORM_EXPAND, NULL);
-
-	//png_bytep *read_rows = png_get_rows(read_ptr, read_info);
-
 	png_read_info(read_ptr, read_info);
 
-	png_uint_32 width = 0;// = png_get_image_width(read_ptr, read_info);
-	png_uint_32 height = 0;// = png_get_image_height(read_ptr, read_info);
-	int color_type;
-	int bitdepth;
-	int filter_method, compression_type, interlace_type;
+	png_uint_32 width, height;
+	int color_type, bitdepth, filter_method, compression_type, interlace_type;
 	double gamma = 0.45455;
 	png_get_IHDR(read_ptr, read_info, &width, &height, &bitdepth, &color_type, &interlace_type, &compression_type, &filter_method);
 
@@ -92,6 +89,7 @@ int main(int argc, char **argv, char **envp) {
 	if(png_get_valid(read_ptr, read_info, PNG_INFO_tRNS))
 		png_set_tRNS_to_alpha(read_ptr);
 
+	// Expand, adding an opaque alpha channel.
 	png_set_add_alpha(read_ptr, 0xff, PNG_FILLER_AFTER);
 	png_set_read_user_transform_fn(read_ptr, swap_and_premultiply_alpha_transform);
 	png_read_update_info(read_ptr, read_info);
@@ -131,7 +129,7 @@ int main(int argc, char **argv, char **envp) {
 	printf("Height: %u, Width: %u depth %d color %d\n", height, width, bitdepth, color_type);
 
 	/**************WRITE**************/
-	FILE *fp_out = fopen("test.png", "wb");
+	FILE *fp_out = fopen(outfilename, "wb");
 	png_structp write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!write_ptr) ERR("Something bad happened.\n");
 
