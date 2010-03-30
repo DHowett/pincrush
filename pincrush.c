@@ -76,8 +76,10 @@ int main(int argc, char **argv, char **envp) {
 
 	png_uint_32 width, height;
 	int color_type, bitdepth, filter_method, compression_type, interlace_type;
+	int orig_color_type;
 	double gamma = 0.45455;
 	png_get_IHDR(read_ptr, read_info, &width, &height, &bitdepth, &color_type, &interlace_type, &compression_type, &filter_method);
+	orig_color_type = color_type;
 
 	if(color_type == PNG_COLOR_TYPE_PALETTE) {
 		png_set_palette_to_rgb(read_ptr);
@@ -88,9 +90,12 @@ int main(int argc, char **argv, char **envp) {
 	}
 	if(png_get_valid(read_ptr, read_info, PNG_INFO_tRNS))
 		png_set_tRNS_to_alpha(read_ptr);
+	else if(!(color_type & PNG_COLOR_MASK_ALPHA)) {
+		// Expand, adding an opaque alpha channel.
+		printf("Expanding alpha channel?\n");
+		png_set_add_alpha(read_ptr, 0xff, PNG_FILLER_AFTER);
+	}
 
-	// Expand, adding an opaque alpha channel.
-	png_set_add_alpha(read_ptr, 0xff, PNG_FILLER_AFTER);
 	png_set_read_user_transform_fn(read_ptr, swap_and_premultiply_alpha_transform);
 	png_read_update_info(read_ptr, read_info);
 	png_set_user_transform_info(read_ptr, NULL, 8, 4);
@@ -177,6 +182,12 @@ int main(int argc, char **argv, char **envp) {
 	//png_unknown_chunkp cgbi = (png_unknown_chunkp)png_malloc(write_ptr, sizeof(png_unknown_chunk));
 	png_byte cname[] = {'C', 'g', 'B', 'I', '\0'};
 	png_byte cdata[] = {0x50, 0x00, 0x20, 0x06};
+	if(orig_color_type == PNG_COLOR_TYPE_RGBA) {
+		// I'm not sure, but if the input colortype is RGBA, CgBI[3] is 0x02 instead of 0x06.
+		// Strange, because 0x06 means RGBA and 0x02 does not.
+		// But, Mimick this behaviour. Otherwise, our alpha channel is ignored.
+		cdata[3] = 0x02;
+	}
 	png_write_chunk(write_ptr, cname, cdata, 4);
 	png_write_info(write_ptr, write_info);
 	png_write_image(write_ptr, read_rows);
