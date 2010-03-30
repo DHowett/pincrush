@@ -1,13 +1,5 @@
 An attempt to replicate Apple's PNG Mangler.
-This is insane. Apple's using compression methods that stock zlib doesn't even SUPPORT.
 Uses a modified Theos, which is why it's not a subproject here.
 
-zlib only supports compression method 8 (deflate).
-Apple modified pngcrush to swap/expand PNGs and premultiply alpha (violating the standard),
-modified pngcrush's libpng to use some random compression method (not 8. I've seen 5 and 13.),
-and modified pngcrush's zlib to actually support those insane compression methods. At least, I think.
-
-Apple's PNG files are nowhere near valid (extra critical chunk with an unknown format, invalid
-compression type, premultiplied alpha), but I'm trying to create an open solution for creating them.
-
-"Think different" and all that.
+Apple's PNG files are nowhere near valid (extra critical chunk with an unknown format, zlib
+headers discarded, premultiplied alpha). "Think different" and all that.

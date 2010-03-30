@@ -152,15 +152,27 @@ int main(int argc, char **argv, char **envp) {
 		return 1;
 	}
 
+	// If we don't write the header first, png_write_chunk (for our custom CgBI chunk) doesn't add a header.
+	// png_write_sig() supposedly exists, even in the header file, but I can't for the life of me use it?
 	fwrite(header, 1, 8, fp_out);
 	png_init_io(write_ptr, fp_out);
 	png_set_sig_bytes(write_ptr, 8);
+
 	png_set_filter(write_ptr, 0, PNG_FILTER_NONE);
-	//png_set_compression_method(write_ptr, 0xE);
+
+	// The default window size is 15 bits. Setting it to -15 causes zlib to discard the header and crc information.
+	// This is critical to making a proper CgBI PNG
+	png_set_compression_window_bits(write_ptr, -15);
+
 	png_set_IHDR(write_ptr, write_info, width, height, bitdepth, color_type, interlace_type, compression_type, filter_method);
+
+	// Standard Gamma
 	png_set_gAMA(write_ptr, write_info, 0.45455);
+
 	// Primary Chromaticities white_xy, red_xy, blue_xy, green_xy, in that order.
 	png_set_cHRM(write_ptr, write_info, 0.312700, 0.329000, 0.640000, 0.330000, 0.300000, 0.600000, 0.150000, 0.060000);
+
+	// Apple's PNGs have an sRGB intent of 0.
 	png_set_sRGB(write_ptr, write_info, 0);
 	// CgBI = 0x50 00 20 06
 
