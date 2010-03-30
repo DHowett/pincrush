@@ -1319,8 +1319,6 @@ png_set_compression_window_bits(png_structp png_ptr, int window_bits)
       return;
    if (window_bits > 15)
       png_warning(png_ptr, "Only compression windows <= 32k supported by PNG");
-   else if (window_bits < 8)
-      png_warning(png_ptr, "Only compression windows >= 256 supported by PNG");
 #ifndef WBITS_8_OK
    /* Avoid libpng bug with 256-byte windows */
    if (window_bits == 8)

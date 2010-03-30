@@ -700,9 +700,6 @@ png_write_IDAT(png_structp png_ptr, png_bytep data, png_size_t length)
             }
          }
       }
-      else
-         png_error(png_ptr,
-            "Invalid zlib compression method or flags in IDAT");
    }
 
    png_write_chunk(png_ptr, (png_bytep)png_IDAT, data, length);
