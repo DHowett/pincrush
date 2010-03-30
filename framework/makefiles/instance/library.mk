@@ -30,7 +30,6 @@ ifeq ($(DEBUG),)
 endif   
 	$(ECHO_SIGNING)$(FW_CODESIGN_COMMANDLINE) $@$(ECHO_END)
 	$(ECHO_NOTHING)$(TARGET_CXX) $(TARGET_LDFLAGS) -nostdlib -r -d -o $(FW_OBJ_DIR)/$(FW_INSTANCE).a $^$(ECHO_END)
-	#$(ECHO_NOTHING) ar cru $(FW_OBJ_DIR)/$(FW_INSTANCE).a $<$(ECHO_END)
 
 
 internal-library-package_::
