@@ -156,7 +156,7 @@ int main(int argc, char **argv, char **envp) {
 	png_init_io(write_ptr, fp_out);
 	png_set_sig_bytes(write_ptr, 8);
 	png_set_filter(write_ptr, 0, PNG_FILTER_NONE);
-	png_set_compression_method(write_ptr, 0xE);
+	//png_set_compression_method(write_ptr, 0xE);
 	png_set_IHDR(write_ptr, write_info, width, height, bitdepth, color_type, interlace_type, compression_type, filter_method);
 	png_set_gAMA(write_ptr, write_info, 0.45455);
 	// Primary Chromaticities white_xy, red_xy, blue_xy, green_xy, in that order.
@@ -165,11 +165,8 @@ int main(int argc, char **argv, char **envp) {
 	// CgBI = 0x50 00 20 06
 
 	//png_unknown_chunkp cgbi = (png_unknown_chunkp)png_malloc(write_ptr, sizeof(png_unknown_chunk));
-	png_bytep cname = (png_bytep)malloc(5);
-	png_bytep cdata = (png_bytep)malloc(4);
-	cname[0] = 'C'; cname[1] = 'g'; cname[2] = 'B'; cname[3] = 'I'; cname[4] = '\0';
-	cdata[0] = 0x50; cdata[1] = 0x00; cdata[2] = 0x20; cdata[3] = 0x06;
-	//png_write_sig(write_ptr);
+	png_byte cname[] = {'C', 'g', 'B', 'I', '\0'};
+	png_byte cdata[] = {0x50, 0x00, 0x20, 0x06};
 	png_write_chunk(write_ptr, cname, cdata, 4);
 	png_write_info(write_ptr, write_info);
 	png_write_image(write_ptr, read_rows);
