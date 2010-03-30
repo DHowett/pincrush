@@ -1,0 +1,8 @@
+Package: net.howett.pincrush
+Name: pincrush
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: 
+Maintainer: Dustin Howett <dustin@howett.net>
+Author: Dustin Howett <dustin@howett.net>
+Section: Tweaks
