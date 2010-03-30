@@ -1,7 +1,7 @@
 TOOL_NAME = pincrush
 export TARGET = native
-pincrush_CC_FILES = pincrush.cc
-pincrush_CCFLAGS = -I./libpng -Wno-format
+pincrush_C_FILES = pincrush.c
+pincrush_CFLAGS = -I./libpng -Wno-format -std=c99
 pincrush_OBJ_FILES = libpng/$(FW_OBJ_DIR_NAME)/png.a zlib/$(FW_OBJ_DIR_NAME)/z.a
 SUBPROJECTS = libpng zlib
 

@@ -1,5 +1,5 @@
-#include <cstdio>
-#include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
 #include <png.h>
 
 #define ERR(...) { fprintf(stderr, __VA_ARGS__); exit(1); }
