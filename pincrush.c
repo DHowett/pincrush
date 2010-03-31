@@ -6,12 +6,13 @@
 #define ERR(...) { fprintf(stderr, __VA_ARGS__); exit(1); }
 #define INFO(...) { if(verbose) fprintf(stderr, __VA_ARGS__); }
 
-static png_uint_32 user_chunk_data[4];
+static bool inplace = false;
+static bool verbose = false;
+
 int unknown_chunk_read_cb(png_structp ptr, png_unknown_chunkp chunk) {
 	//png_uint_32 *my_chunk_data = (png_uint_32*)png_get_user_chunk_ptr(ptr);
 	if(!strncmp((char*)chunk->name, "CgBI", 4)) {
-		fprintf(stderr, "This file is already crushed.\n");
-		exit(1);
+		ERR("Error: This file is already crushed and how the hell did you get here?\n");
 	}
 	return 1;
 }
@@ -37,8 +38,6 @@ void usage(char *argv0) {
 int main(int argc, char **argv, char **envp) {
 	char *argv0 = argv[0];
 	char optflag;
-	bool inplace = false;
-	bool verbose = false;
 	while((optflag = getopt(argc, argv, "ivh")) != -1) {
 		switch(optflag) {
 			case 'i':
@@ -83,6 +82,19 @@ int main(int argc, char **argv, char **envp) {
 	if(png_sig_cmp(header, 0, 8) != 0) {
 		ERR("Error: %s is not a valid PNG file.\n", infilename);
 	}
+
+	fseek(fp_in, 12, SEEK_SET);
+	char cgbi[4];
+	fread(cgbi, 1, 4, fp_in);
+	if(!strncmp(cgbi, "CgBI", 4)) {
+		if(inplace) {
+			INFO("Warning: This file is already crushed. Doing nothing.\n");
+			exit(0);
+		} else {
+			ERR("Error: This file is already crushed.\n");
+		}
+	}
+	fseek(fp_in, 8, SEEK_SET);
 
 	png_structp read_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!read_ptr) ERR("Error: failed to init libpng for reading.\n");
