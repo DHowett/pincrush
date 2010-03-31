@@ -4,6 +4,7 @@
 #include <png.h>
 
 #define ERR(...) { fprintf(stderr, __VA_ARGS__); exit(1); }
+#define INFO(...) { if(verbose) fprintf(stderr, __VA_ARGS__); }
 
 static png_uint_32 user_chunk_data[4];
 int unknown_chunk_read_cb(png_structp ptr, png_unknown_chunkp chunk) {
@@ -26,19 +27,25 @@ void swap_and_premultiply_alpha_transform(png_structp ptr, png_row_infop row_inf
 }
 
 void usage(char *argv0) {
-	printf("Syntax: %s -i <infile>\n", argv0);
-	printf("        %s <infile> <outfile>\n\n", argv0);
+	printf("Syntax: %s [-v] -i <infile>\n", argv0);
+	printf("        %s [-v] <infile> <outfile>\n\n", argv0);
 	printf("  -i	In-place mode. One of -i or outfile is required.\n");
+	printf("  -v	Verbose mode.\n");
+	printf("  -h	Display this help text.\n");
 }
 
 int main(int argc, char **argv, char **envp) {
 	char *argv0 = argv[0];
 	char optflag;
 	bool inplace = false;
-	while((optflag = getopt(argc, argv, "hi")) != -1) {
+	bool verbose = false;
+	while((optflag = getopt(argc, argv, "ivh")) != -1) {
 		switch(optflag) {
 			case 'i':
 				inplace = true;
+				break;
+			case 'v':
+				verbose = true;
 				break;
 			case '?':
 			case 'h':
@@ -127,7 +134,7 @@ int main(int argc, char **argv, char **envp) {
 		png_set_tRNS_to_alpha(read_ptr);
 	else if(!(color_type & PNG_COLOR_MASK_ALPHA)) {
 		// Expand, adding an opaque alpha channel.
-		printf("Expanding alpha channel?\n");
+		INFO("Adding opaque alpha channel.\n");
 		png_set_add_alpha(read_ptr, 0xff, PNG_FILLER_AFTER);
 	}
 
@@ -138,18 +145,18 @@ int main(int argc, char **argv, char **envp) {
 	if(png_get_valid(read_ptr, read_info, PNG_INFO_cHRM)) {
 		double wx,wy,rx,ry,gx,gy,bx,by;
 		png_get_cHRM(read_ptr, read_info, &wx, &wy, &rx, &ry, &gx, &gy, &bx, &by);
-		printf("cHRM: %f, %f, %f, %f, %f, %f, %f, %f\n", wx,wy,rx,ry,gx,gy,bx,by);
+		INFO("cHRM (chromaticities): %f, %f, %f, %f, %f, %f, %f, %f\n", wx,wy,rx,ry,gx,gy,bx,by);
 	}
 	if(png_get_valid(read_ptr, read_info, PNG_INFO_sRGB)) {
 		int intent;
 		png_get_sRGB(read_ptr, read_info, &intent);
-		printf("sRGB intent %d\n", intent);
+		INFO("sRGB intent: %d\n", intent);
 	}
 	if(png_get_valid(read_ptr, read_info, PNG_INFO_pHYs)) {
 		png_uint_32 res_x, res_y;
 		int unit_type;
 		png_get_pHYs(read_ptr, read_info, &res_x, &res_y, &unit_type);
-		printf("Physical info: xres %u yres %u unit type %d\n", res_x, res_y, unit_type);
+		INFO("pHYs info: xres %u yres %u unit type %d\n", res_x, res_y, unit_type);
 	}
 
 	// re-read the info
@@ -167,7 +174,7 @@ int main(int argc, char **argv, char **envp) {
 	png_read_end(read_ptr, read_end);
 	fclose(fp_in);
 
-	printf("Height: %u, Width: %u depth %d color %d\n", height, width, bitdepth, color_type);
+	INFO("Dimensions: %ux%u\nBit Depth: %d\nColour Mode: %d\n", height, width, bitdepth, color_type);
 
 	/**************WRITE**************/
 	FILE *fp_out = fopen(outfilename, "wb");
