@@ -1,15 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <png.h>
 
-#define ERR(...) { fprintf(stderr, __VA_ARGS__); goto out; }
-#define INFO(...) { if(verbose) fprintf(stderr, __VA_ARGS__); }
+#define RDERR(...) { debuglog(infilename, __VA_ARGS__); goto out; }
+#define WRERR(...) { debuglog(outfilename, __VA_ARGS__); goto out; }
+#define INFO(...) { if(verbose) debuglog(infilename, __VA_ARGS__); }
 
 static bool inplace = false;
 static bool verbose = false;
 static bool chunked = true;
 static unsigned int global_num_rows = 8;
+
+void debuglog(char *infilename, char *format, ...) {
+	va_list args;
+	va_start(args, format);
+	char *out;
+	vasprintf(&out, format, args);
+	fprintf(stderr, "%s: %s", infilename, out);
+	free(out);
+	va_end(args);
+}
 
 void copy(char *inf, char *outf) {
 	FILE *in, *out;
@@ -57,13 +70,13 @@ void crush(char *infilename, char *outfilename) {
 	{
 		fp_in = fopen(infilename, "rb");
 		if(!fp_in) {
-			ERR("Error: could not open %s.\n", infilename);
+			RDERR("Error: could not open.\n", infilename);
 		}
 
 		png_byte header[8];
 		fread(header, 1, 8, fp_in);
 		if(png_sig_cmp(header, 0, 8) != 0) {
-			ERR("Error: %s is not a valid PNG file.\n", infilename);
+			RDERR("Error: Not a valid PNG file.\n", infilename);
 		}
 
 		fseek(fp_in, 12, SEEK_SET);
@@ -79,22 +92,22 @@ void crush(char *infilename, char *outfilename) {
 		fseek(fp_in, 8, SEEK_SET);
 
 		png_structp read_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-		if(!read_ptr) ERR("Error: failed to init libpng for reading.\n");
+		if(!read_ptr) RDERR("Error: failed to init libpng for reading.\n");
 
 		png_infop read_info = png_create_info_struct(read_ptr);
 		if(!read_info) {
 			png_destroy_read_struct(&read_ptr, NULL, NULL);
-			ERR("Error: failed to init libpng for reading.\n");
+			RDERR("Error: failed to init libpng for reading.\n");
 		}
 
 		png_infop read_end = png_create_info_struct(read_ptr);
 		if(!read_end) {
 			png_destroy_read_struct(&read_ptr, &read_info, NULL);
-			ERR("Error: failed to init libpng for reading.\n");
+			RDERR("Error: failed to init libpng for reading.\n");
 		}
 
 		if(setjmp(png_jmpbuf(read_ptr))) {
-			ERR("Error: error reading PNG.\n");
+			RDERR("Error: error reading PNG.\n");
 			goto out;
 		}
 
@@ -103,20 +116,20 @@ void crush(char *infilename, char *outfilename) {
 
 		fp_out = fopen(outfilename, "wb");
 		if(!fp_out) {
-			ERR("Error: could not open %s for writing.\n", outfilename);
+			WRERR("Error: could not open for writing.\n", outfilename);
 		}
 		png_structp write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-		if(!write_ptr) ERR("Error: failed to init libpng for writing.\n");
+		if(!write_ptr) WRERR("Error: failed to init libpng for writing.\n");
 
 		png_infop write_info = png_create_info_struct(write_ptr);
 		if(!write_info) {
 			png_destroy_write_struct(&write_ptr, NULL);
-			ERR("Error: failed to init libpng for writing.\n");
+			WRERR("Error: failed to init libpng for writing.\n");
 		}
 
 		if(setjmp(png_jmpbuf(write_ptr))) {
 			unlink(outfilename);
-			ERR("Error: error writing PNG.\n");
+			WRERR("Error: error writing PNG.\n");
 			goto out;
 		}
 
@@ -150,7 +163,7 @@ void crush(char *infilename, char *outfilename) {
 		} else if(color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
 			if(bitdepth < 8)
 				png_set_expand_gray_1_2_4_to_8(read_ptr);
-			INFO("Grey -> RGB\n");
+			INFO("Converting Greyscale image to RGB\n");
 			png_set_gray_to_rgb(read_ptr);
 		}
 		if(png_get_valid(read_ptr, read_info, PNG_INFO_tRNS))
@@ -184,7 +197,9 @@ void crush(char *infilename, char *outfilename) {
 
 		// re-read the info
 		png_get_IHDR(read_ptr, read_info, &width, &height, &bitdepth, &color_type, &interlace_type, &compression_type, &filter_method);
-		INFO("Dimensions: %ux%u\nBit Depth: %d\nColour Mode: %d\n", height, width, bitdepth, color_type);
+		INFO("Dimensions: %ux%u.\n", height, width);
+		//INFO("Bit Depth: %d\n", bitdepth);
+		//INFO("Colour Mode: %d\n", color_type);
 
 		png_set_IHDR(write_ptr, write_info, width, height, bitdepth, color_type, interlace_type, compression_type, filter_method);
 
