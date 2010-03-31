@@ -11,6 +11,23 @@ static bool verbose = false;
 static bool chunked = false;
 static unsigned int global_num_rows = 8;
 
+void copy(char *inf, char *outf) {
+	FILE *in, *out;
+	in = fopen(inf, "rb");
+	out = fopen(outf, "wb");
+
+	fseek(in, 0, SEEK_END);
+	int len = ftell(in);
+	rewind(in);
+
+	char *filebuf = malloc(len);
+	fread(filebuf, 1, len, in);
+	fclose(in);
+	fwrite(filebuf, 1, len, out);
+	fclose(out);
+	free(filebuf);
+}
+
 int unknown_chunk_read_cb(png_structp ptr, png_unknown_chunkp chunk) {
 	//png_uint_32 *my_chunk_data = (png_uint_32*)png_get_user_chunk_ptr(ptr);
 	if(!strncmp((char*)chunk->name, "CgBI", 4)) {
@@ -63,12 +80,11 @@ void crush(char *infilename, char *outfilename) {
 		png_byte cgbi[4];
 		fread(cgbi, 1, 4, fp_in);
 		if(!strncmp((char*)cgbi, "CgBI", 4)) {
-			if(inplace) {
-				INFO("Warning: This file is already crushed. Doing nothing.\n");
-				goto out;
-			} else {
-				ERR("Error: This file is already crushed.\n");
-			}
+			fclose(fp_in); fp_in = NULL;
+			INFO("Warning: This file is already crushed. Doing nothing.\n");
+			if(!inplace)
+				copy(infilename, outfilename);
+			goto out;
 		}
 		fseek(fp_in, 8, SEEK_SET);
 
