@@ -235,7 +235,8 @@ void crush(char *infilename, char *outfilename) {
 
 		int rowbytes = png_get_rowbytes(read_ptr, read_info); // We're always outputting 4bpp.
 		INFO("There are %d bytes per row. Don't let anybody tell you otherwise.\n", rowbytes);
-		if(!chunked) {
+		INFO("Interlace type: %d\n", interlace_type);
+		if(interlace_type != 0 || !chunked) {
 			png_bytep read_data = (png_bytep)malloc(rowbytes * height);
 			png_bytep read_rows[height];
 			int bpr = png_get_rowbytes(read_ptr, read_info);
