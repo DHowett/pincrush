@@ -8,6 +8,7 @@
 
 static bool inplace = false;
 static bool verbose = false;
+static unsigned int global_num_rows = 8;
 
 int unknown_chunk_read_cb(png_structp ptr, png_unknown_chunkp chunk) {
 	//png_uint_32 *my_chunk_data = (png_uint_32*)png_get_user_chunk_ptr(ptr);
@@ -29,10 +30,11 @@ void swap_and_premultiply_alpha_transform(png_structp ptr, png_row_infop row_inf
 }
 
 void usage(char *argv0) {
-	printf("Syntax: %s [-v] -i <infile> [infile ...]\n", argv0);
-	printf("        %s [-v] <infile> <outfile>\n\n", argv0);
+	printf("Syntax: %s [-v] [-r#] -i <infile> [infile ...]\n", argv0);
+	printf("        %s [-v] [-r#] <infile> <outfile>\n\n", argv0);
 	printf("  -i	In-place mode. One of -i or outfile is required.\n");
 	printf("  -v	Verbose mode.\n");
+	printf("  -r#	(ADVANCED) Process # rows at a time. Defaults to 8\n");
 	printf("  -h	Display this help text.\n");
 }
 
@@ -199,15 +201,27 @@ void crush(char *infilename, char *outfilename) {
 		png_write_chunk(write_ptr, cname, cdata, 4);
 		png_write_info(write_ptr, write_info);
 
-		png_bytep read_data = (png_bytep)malloc(png_get_rowbytes(read_ptr, read_info) * height);
-		png_bytep read_rows[height];
-		int bpr = png_get_rowbytes(read_ptr, read_info);
-		for(unsigned int i = 0; i < height; i++) {
-			read_rows[i] = read_data + i*bpr;
+		int number_of_passes = 1;
+		if(interlace_type == PNG_INTERLACE_ADAM7)
+			number_of_passes = png_set_interlace_handling(read_ptr);
+		int remaining_rows = height;
+		unsigned int numrows = remaining_rows > global_num_rows ? global_num_rows : remaining_rows;
+		int rowbytes = png_get_rowbytes(read_ptr, read_info);
+		png_bytep row = calloc(rowbytes, numrows);
+		png_bytep rowpointers[numrows];
+		for(unsigned int i = 0; i < numrows; i++) {
+			rowpointers[i] = row+(i*rowbytes);
 		}
-		png_read_image(read_ptr, read_rows);
-		png_write_image(write_ptr, read_rows);
-		//png_free(read_ptr, read_rows);
+		while(remaining_rows > 0) {
+			memset(row, 0, rowbytes);
+			for(int i = 0; i < number_of_passes; i++) {
+				png_read_rows(read_ptr, rowpointers, NULL, numrows);
+				png_write_rows(write_ptr, rowpointers, numrows);
+			}
+			remaining_rows -= numrows;
+			numrows = remaining_rows > global_num_rows ? global_num_rows : remaining_rows;
+		}
+		free(row);
 
 		png_read_end(read_ptr, read_end);
 		png_write_end(write_ptr, write_info);
@@ -215,8 +229,6 @@ void crush(char *infilename, char *outfilename) {
 		fclose(fp_out); fp_out = NULL;
 		png_destroy_read_struct(&read_ptr, &read_info, &read_end);
 		png_destroy_write_struct(&write_ptr, &write_info);
-
-		free(read_data);
 
 		if(inplace) {
 			unlink(infilename);
@@ -233,13 +245,16 @@ out:
 int main(int argc, char **argv, char **envp) {
 	char *argv0 = argv[0];
 	char optflag;
-	while((optflag = getopt(argc, argv, "ivh")) != -1) {
+	while((optflag = getopt(argc, argv, "ivhr:")) != -1) {
 		switch(optflag) {
 			case 'i':
 				inplace = true;
 				break;
 			case 'v':
 				verbose = true;
+				break;
+			case 'r':
+				global_num_rows = (unsigned int)strtoul(optarg, NULL, 0);
 				break;
 			case '?':
 			case 'h':
