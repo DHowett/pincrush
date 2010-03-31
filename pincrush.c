@@ -213,7 +213,7 @@ void crush(char *infilename, char *outfilename) {
 			rowpointers[i] = row+(i*rowbytes);
 		}
 		while(remaining_rows > 0) {
-			memset(row, 0, rowbytes);
+			memset(row, 0, rowbytes * numrows);
 			for(int i = 0; i < number_of_passes; i++) {
 				png_read_rows(read_ptr, rowpointers, NULL, numrows);
 				png_write_rows(write_ptr, rowpointers, numrows);
