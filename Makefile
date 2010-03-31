@@ -1,5 +1,4 @@
 TOOL_NAME = pincrush
-export TARGET = native
 pincrush_C_FILES = pincrush.c
 pincrush_CFLAGS = -I./libpng -Wno-format -std=c99
 pincrush_LDFLAGS = -lz
