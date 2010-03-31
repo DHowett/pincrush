@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <png.h>
 
 #define ERR(...) { fprintf(stderr, __VA_ARGS__); exit(1); }
@@ -24,13 +25,46 @@ void swap_and_premultiply_alpha_transform(png_structp ptr, png_row_infop row_inf
 	}
 }
 
-int main(int argc, char **argv, char **envp) {
-	if(argc < 3) {
-		ERR("Syntax: %s infile outfile\n", argv[0]);
-	}
+void usage(char *argv0) {
+	printf("Syntax: %s -i <infile>\n", argv0);
+	printf("        %s <infile> <outfile>\n\n", argv0);
+	printf("  -i	In-place mode. One of -i or outfile is required.\n");
+}
 
-	char *infilename = argv[1];
-	char *outfilename = argv[2];
+int main(int argc, char **argv, char **envp) {
+	char *argv0 = argv[0];
+	char optflag;
+	bool inplace = false;
+	while((optflag = getopt(argc, argv, "hi")) != -1) {
+		switch(optflag) {
+			case 'i':
+				inplace = true;
+				break;
+			case '?':
+			case 'h':
+			default:
+				usage(argv0);
+				exit(1);
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	if(argc < 1) {
+		usage(argv0);
+		exit(1);
+	}
+	char *infilename = argv[0];
+	char outfilename[PATH_MAX];
+	if(inplace)
+		snprintf(outfilename, PATH_MAX, "%s.crush", infilename);
+	else {
+		if(argc < 2) {
+			usage(argv0);
+			exit(1);
+		}
+		strncpy(outfilename, argv[1], PATH_MAX);
+	}
 
 	FILE *fp_in = fopen(infilename, "rb");
 	if(!fp_in) {
@@ -130,6 +164,7 @@ int main(int argc, char **argv, char **envp) {
 	//png_free(read_ptr, read_rows);
 
 	png_read_end(read_ptr, read_end);
+	fclose(fp_in);
 
 	printf("Height: %u, Width: %u depth %d color %d\n", height, width, bitdepth, color_type);
 
@@ -193,8 +228,11 @@ int main(int argc, char **argv, char **envp) {
 	png_write_image(write_ptr, read_rows);
 	png_write_end(write_ptr, write_info);
 	fclose(fp_out);
-	fclose(fp_in);
 
+	if(inplace) {
+		unlink(infilename);
+		rename(outfilename, infilename);
+	}
 
 	return 0;
 }
