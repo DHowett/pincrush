@@ -157,9 +157,10 @@ void crush(char *infilename, char *outfilename) {
 
 		if(color_type == PNG_COLOR_TYPE_PALETTE) {
 			png_set_palette_to_rgb(read_ptr);
-		} else if(color_type == PNG_COLOR_TYPE_GRAY) {
+		} else if(color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
 			if(bitdepth < 8)
 				png_set_expand_gray_1_2_4_to_8(read_ptr);
+			INFO("Grey -> RGB\n");
 			png_set_gray_to_rgb(read_ptr);
 		}
 		if(png_get_valid(read_ptr, read_info, PNG_INFO_tRNS))
@@ -219,8 +220,10 @@ void crush(char *infilename, char *outfilename) {
 		png_write_chunk(write_ptr, cname, cdata, 4);
 		png_write_info(write_ptr, write_info);
 
+		int rowbytes = png_get_rowbytes(read_ptr, read_info); // We're always outputting 4bpp.
+		INFO("There are %d bytes per row. Don't let anybody tell you otherwise.\n", rowbytes);
 		if(!chunked) {
-			png_bytep read_data = (png_bytep)malloc(png_get_rowbytes(read_ptr, read_info) * height);
+			png_bytep read_data = (png_bytep)malloc(rowbytes * height);
 			png_bytep read_rows[height];
 			int bpr = png_get_rowbytes(read_ptr, read_info);
 			for(unsigned int i = 0; i < height; i++) {
@@ -237,8 +240,6 @@ void crush(char *infilename, char *outfilename) {
 			}
 			int remaining_rows = height;
 			unsigned int numrows = remaining_rows > global_num_rows ? global_num_rows : remaining_rows;
-			int rowbytes = png_get_rowbytes(read_ptr, read_info);
-			rowbytes += 16;
 			png_bytep row = png_malloc(read_ptr, rowbytes * numrows);
 			png_bytep rowpointers[numrows];
 			for(unsigned int i = 0; i < numrows; i++)
