@@ -178,6 +178,9 @@ int main(int argc, char **argv, char **envp) {
 
 	/**************WRITE**************/
 	FILE *fp_out = fopen(outfilename, "wb");
+	if(!fp_out) {
+		ERR("Error: could not open %s for writing.\n", outfilename);
+	}
 	png_structp write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!write_ptr) ERR("Error: failed to init libpng for writing.\n");
 
