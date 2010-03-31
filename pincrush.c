@@ -5,21 +5,33 @@
 #include <unistd.h>
 #include <png.h>
 
-#define RDERR(...) { debuglog(infilename, __VA_ARGS__); goto out; }
-#define WRERR(...) { debuglog(outfilename, __VA_ARGS__); goto out; }
-#define INFO(...) { if(verbose) debuglog(infilename, __VA_ARGS__); }
+#define RDERR(...) { debuglog(LEVEL_ERROR, infilename, __VA_ARGS__); goto out; }
+#define WRERR(...) { debuglog(LEVEL_ERROR, inplace?infilename:outfilename, __VA_ARGS__); goto out; }
+#define INFO(level, ...) { if(verbose) debuglog(level, infilename, __VA_ARGS__); }
+
+enum debuglevels {
+	LEVEL_ERROR = -1,
+	LEVEL_NONE = 0,
+	LEVEL_INFO, LEVEL_RIDICULOUS, LEVEL_INSANE
+};
 
 static bool inplace = false;
-static bool verbose = false;
+static unsigned int verbose = 0;
 static bool chunked = true;
 static unsigned int global_num_rows = 8;
 
-void debuglog(char *infilename, const char *format, ...) {
+void debuglog(int level, char *filename, const char *format, ...) {
+	if(level > verbose && level != LEVEL_ERROR) return;
 	va_list args;
 	va_start(args, format);
 	char *out;
 	vasprintf(&out, format, args);
-	fprintf(stderr, "%s: %s", infilename, out);
+	if(!filename)
+		fprintf(stderr, "%s", out);
+	else
+		fprintf(stderr, "%s: %s", filename, out);
+	if(out[strlen(out)-1] != '\n')
+		fprintf(stderr, "\n");
 	free(out);
 	va_end(args);
 }
@@ -27,7 +39,7 @@ void debuglog(char *infilename, const char *format, ...) {
 void png_warning_cb(png_structp ptr, png_const_charp msg) {
 	char *filename = (char *)png_get_error_ptr(ptr);
 	if(verbose)
-		debuglog(filename, msg);
+		debuglog(LEVEL_INFO, filename, msg);
 }
 
 void copy(char *inf, char *outf) {
@@ -74,6 +86,7 @@ void crush(char *infilename, char *outfilename) {
 	FILE *fp_in = NULL, *fp_out = NULL;
 
 	{
+		debuglog(LEVEL_INFO, NULL, "Crushing %s.\n", infilename);
 		fp_in = fopen(infilename, "rb");
 		if(!fp_in) {
 			RDERR("Error: could not open.\n", infilename);
@@ -90,7 +103,7 @@ void crush(char *infilename, char *outfilename) {
 		fread(cgbi, 1, 4, fp_in);
 		if(!strncmp((char*)cgbi, "CgBI", 4)) {
 			fclose(fp_in); fp_in = NULL;
-			INFO("Warning: This file is already crushed. Doing nothing.\n");
+			INFO(LEVEL_INFO, "Warning: This file is already crushed. Doing nothing.\n");
 			if(!inplace)
 				copy(infilename, outfilename);
 			goto out;
@@ -127,7 +140,7 @@ void crush(char *infilename, char *outfilename) {
 		}
 		png_structp write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 		if(!write_ptr) WRERR("Error: failed to init libpng for writing.\n");
-		png_set_error_fn(read_ptr, (void*)outfilename, NULL, png_warning_cb);
+		png_set_error_fn(read_ptr, (void*)(inplace?infilename:outfilename), NULL, png_warning_cb);
 
 		png_infop write_info = png_create_info_struct(write_ptr);
 		if(!write_info) {
@@ -171,14 +184,14 @@ void crush(char *infilename, char *outfilename) {
 		} else if(color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
 			if(bitdepth < 8)
 				png_set_expand_gray_1_2_4_to_8(read_ptr);
-			INFO("Converting Greyscale image to RGB\n");
+			INFO(LEVEL_INFO, "Converting Greyscale image to RGB\n");
 			png_set_gray_to_rgb(read_ptr);
 		}
 		if(png_get_valid(read_ptr, read_info, PNG_INFO_tRNS))
 			png_set_tRNS_to_alpha(read_ptr);
 		else if(!(color_type & PNG_COLOR_MASK_ALPHA)) {
 			// Expand, adding an opaque alpha channel.
-			INFO("Adding opaque alpha channel.\n");
+			INFO(LEVEL_INFO, "Adding opaque alpha channel.\n");
 			png_set_add_alpha(read_ptr, 0xff, PNG_FILLER_AFTER);
 		}
 
@@ -189,23 +202,25 @@ void crush(char *infilename, char *outfilename) {
 		if(png_get_valid(read_ptr, read_info, PNG_INFO_cHRM)) {
 			double wx,wy,rx,ry,gx,gy,bx,by;
 			png_get_cHRM(read_ptr, read_info, &wx, &wy, &rx, &ry, &gx, &gy, &bx, &by);
-			INFO("cHRM (chromaticities): %f, %f, %f, %f, %f, %f, %f, %f\n", wx,wy,rx,ry,gx,gy,bx,by);
+			INFO(LEVEL_RIDICULOUS, "cHRM (chromaticities): %f, %f, %f, %f, %f, %f, %f, %f\n", wx,wy,rx,ry,gx,gy,bx,by);
 		}
 		if(png_get_valid(read_ptr, read_info, PNG_INFO_sRGB)) {
 			int intent;
 			png_get_sRGB(read_ptr, read_info, &intent);
-			INFO("sRGB intent: %d\n", intent);
+			INFO(LEVEL_RIDICULOUS, "sRGB intent: %d\n", intent);
 		}
 		if(png_get_valid(read_ptr, read_info, PNG_INFO_pHYs)) {
 			png_uint_32 res_x, res_y;
 			int unit_type;
 			png_get_pHYs(read_ptr, read_info, &res_x, &res_y, &unit_type);
-			INFO("pHYs info: xres %u yres %u unit type %d\n", res_x, res_y, unit_type);
+			INFO(LEVEL_RIDICULOUS, "pHYs info: xres %u yres %u unit type %d\n", res_x, res_y, unit_type);
 		}
 
 		// re-read the info
 		png_get_IHDR(read_ptr, read_info, &width, &height, &bitdepth, &color_type, &interlace_type, &compression_type, &filter_method);
-		INFO("Dimensions: %ux%u.\n", height, width);
+		INFO(LEVEL_INFO, "Dimensions: %ux%u.\n", height, width);
+		if(interlace_type != 0)
+			INFO(LEVEL_INFO, "Interlaced. Overriding chunked mode.\n");
 		//INFO("Bit Depth: %d\n", bitdepth);
 		//INFO("Colour Mode: %d\n", color_type);
 
@@ -234,9 +249,9 @@ void crush(char *infilename, char *outfilename) {
 		png_write_info(write_ptr, write_info);
 
 		int rowbytes = png_get_rowbytes(read_ptr, read_info); // We're always outputting 4bpp.
-		INFO("There are %d bytes per row. Don't let anybody tell you otherwise.\n", rowbytes);
-		INFO("Interlace type: %d\n", interlace_type);
+		INFO(LEVEL_RIDICULOUS, "There are %d bytes per row. Don't let anybody tell you otherwise.\n", rowbytes);
 		if(interlace_type != 0 || !chunked) {
+			INFO(LEVEL_INSANE, "Reading whole image into memory: %d bytes.\n", rowbytes*height);
 			png_bytep read_data = (png_bytep)malloc(rowbytes * height);
 			png_bytep read_rows[height];
 			int bpr = png_get_rowbytes(read_ptr, read_info);
@@ -254,6 +269,7 @@ void crush(char *infilename, char *outfilename) {
 			}
 			int remaining_rows = height;
 			unsigned int numrows = remaining_rows > global_num_rows ? global_num_rows : remaining_rows;
+			INFO(LEVEL_INSANE, "Reading image into memory %d rows at a time: %d bytes.\n", numrows, rowbytes*numrows);
 			png_bytep row = png_malloc(read_ptr, rowbytes * numrows);
 			png_bytep rowpointers[numrows];
 			for(unsigned int i = 0; i < numrows; i++)
@@ -292,7 +308,7 @@ void usage(char *argv0) {
 	printf("Syntax: %s [-v] [-c#] -i <infile> [infile ...]\n", argv0);
 	printf("        %s [-v] [-c#] <infile> <outfile>\n\n", argv0);
 	printf("  -i	In-place mode. One of -i or outfile is required.\n");
-	printf("  -v	Verbose mode.\n");
+	printf("  -v	Verbose mode. More 'v's = more verbose! Up to three. Five is right out.\n");
 	printf("  -c#	Process # rows at a time. The default is 8.\n");
 	printf("     	Use 0 to disable chunk mode (uses more memory, reads the entire image into memory).\n");
 	printf("  -h	Display this help text.\n");
@@ -307,7 +323,7 @@ int main(int argc, char **argv, char **envp) {
 				inplace = true;
 				break;
 			case 'v':
-				verbose = true;
+				verbose++;
 				break;
 			case 'c':
 				chunked = true;
