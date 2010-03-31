@@ -90,10 +90,41 @@ void crush(char *infilename, char *outfilename) {
 
 		png_init_io(read_ptr, fp_in);
 		png_set_sig_bytes(read_ptr, 8); // Already read the signature.
-		png_set_read_user_chunk_fn(read_ptr, NULL, unknown_chunk_read_cb);
+
+		fp_out = fopen(outfilename, "wb");
+		if(!fp_out) {
+			ERR("Error: could not open %s for writing.\n", outfilename);
+		}
+		png_structp write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+		if(!write_ptr) ERR("Error: failed to init libpng for writing.\n");
+
+		png_infop write_info = png_create_info_struct(write_ptr);
+		if(!write_info) {
+			png_destroy_write_struct(&write_ptr, NULL);
+			ERR("Error: failed to init libpng for writing.\n");
+		}
+
+		if(setjmp(png_jmpbuf(write_ptr))) {
+			unlink(outfilename);
+			ERR("Error: error writing PNG.\n");
+			goto out;
+		}
+
+		// If we don't write the header first, png_write_chunk (for our custom CgBI chunk) doesn't add a header.
+		// png_write_sig() supposedly exists, even in the header file, but I can't for the life of me use it?
+		fwrite(header, 1, 8, fp_out);
+		png_init_io(write_ptr, fp_out);
+		png_set_sig_bytes(write_ptr, 8);
+
+		png_set_filter(write_ptr, 0, PNG_FILTER_NONE);
+
+		// The default window size is 15 bits. Setting it to -15 causes zlib to discard the header and crc information.
+		// This is critical to making a proper CgBI PNG
+		png_set_compression_window_bits(write_ptr, -15);
 
 		// Handle ALL unknown chunks.
 		png_set_keep_unknown_chunks(read_ptr, PNG_HANDLE_CHUNK_ALWAYS, NULL, 0);
+		png_set_read_user_chunk_fn(read_ptr, NULL, unknown_chunk_read_cb);
 
 		png_read_info(read_ptr, read_info);
 
@@ -142,53 +173,7 @@ void crush(char *infilename, char *outfilename) {
 
 		// re-read the info
 		png_get_IHDR(read_ptr, read_info, &width, &height, &bitdepth, &color_type, &interlace_type, &compression_type, &filter_method);
-
-		png_bytep read_data = (png_bytep)malloc(png_get_rowbytes(read_ptr, read_info) * height);
-		png_bytep read_rows[height];
-		int bpr = png_get_rowbytes(read_ptr, read_info);
-		for(unsigned int i = 0; i < height; i++) {
-			read_rows[i] = read_data + i*bpr;
-		}
-		png_read_image(read_ptr, read_rows);
-		//png_free(read_ptr, read_rows);
-
-		png_read_end(read_ptr, read_end);
-		fclose(fp_in); fp_in = NULL;
-		png_destroy_read_struct(&read_ptr, &read_info, &read_end);
-
 		INFO("Dimensions: %ux%u\nBit Depth: %d\nColour Mode: %d\n", height, width, bitdepth, color_type);
-
-		/**************WRITE**************/
-		fp_out = fopen(outfilename, "wb");
-		if(!fp_out) {
-			ERR("Error: could not open %s for writing.\n", outfilename);
-		}
-		png_structp write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-		if(!write_ptr) ERR("Error: failed to init libpng for writing.\n");
-
-		png_infop write_info = png_create_info_struct(write_ptr);
-		if(!write_info) {
-			png_destroy_write_struct(&write_ptr, NULL);
-			ERR("Error: failed to init libpng for writing.\n");
-		}
-
-		if(setjmp(png_jmpbuf(write_ptr))) {
-			unlink(outfilename);
-			ERR("Error: error writing PNG.\n");
-			goto out;
-		}
-
-		// If we don't write the header first, png_write_chunk (for our custom CgBI chunk) doesn't add a header.
-		// png_write_sig() supposedly exists, even in the header file, but I can't for the life of me use it?
-		fwrite(header, 1, 8, fp_out);
-		png_init_io(write_ptr, fp_out);
-		png_set_sig_bytes(write_ptr, 8);
-
-		png_set_filter(write_ptr, 0, PNG_FILTER_NONE);
-
-		// The default window size is 15 bits. Setting it to -15 causes zlib to discard the header and crc information.
-		// This is critical to making a proper CgBI PNG
-		png_set_compression_window_bits(write_ptr, -15);
 
 		png_set_IHDR(write_ptr, write_info, width, height, bitdepth, color_type, interlace_type, compression_type, filter_method);
 
@@ -213,9 +198,22 @@ void crush(char *infilename, char *outfilename) {
 		}
 		png_write_chunk(write_ptr, cname, cdata, 4);
 		png_write_info(write_ptr, write_info);
+
+		png_bytep read_data = (png_bytep)malloc(png_get_rowbytes(read_ptr, read_info) * height);
+		png_bytep read_rows[height];
+		int bpr = png_get_rowbytes(read_ptr, read_info);
+		for(unsigned int i = 0; i < height; i++) {
+			read_rows[i] = read_data + i*bpr;
+		}
+		png_read_image(read_ptr, read_rows);
 		png_write_image(write_ptr, read_rows);
+		//png_free(read_ptr, read_rows);
+
+		png_read_end(read_ptr, read_end);
 		png_write_end(write_ptr, write_info);
+		fclose(fp_in); fp_in = NULL;
 		fclose(fp_out); fp_out = NULL;
+		png_destroy_read_struct(&read_ptr, &read_info, &read_end);
 		png_destroy_write_struct(&write_ptr, &write_info);
 
 		free(read_data);
