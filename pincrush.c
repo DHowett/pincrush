@@ -14,7 +14,7 @@ static bool verbose = false;
 static bool chunked = true;
 static unsigned int global_num_rows = 8;
 
-void debuglog(char *infilename, char *format, ...) {
+void debuglog(char *infilename, const char *format, ...) {
 	va_list args;
 	va_start(args, format);
 	char *out;
@@ -22,6 +22,12 @@ void debuglog(char *infilename, char *format, ...) {
 	fprintf(stderr, "%s: %s", infilename, out);
 	free(out);
 	va_end(args);
+}
+
+void png_warning_cb(png_structp ptr, png_const_charp msg) {
+	char *filename = (char *)png_get_error_ptr(ptr);
+	if(verbose)
+		debuglog(filename, msg);
 }
 
 void copy(char *inf, char *outf) {
@@ -93,6 +99,7 @@ void crush(char *infilename, char *outfilename) {
 
 		png_structp read_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 		if(!read_ptr) RDERR("Error: failed to init libpng for reading.\n");
+		png_set_error_fn(read_ptr, (void*)infilename, NULL, png_warning_cb);
 
 		png_infop read_info = png_create_info_struct(read_ptr);
 		if(!read_info) {
@@ -120,6 +127,7 @@ void crush(char *infilename, char *outfilename) {
 		}
 		png_structp write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 		if(!write_ptr) WRERR("Error: failed to init libpng for writing.\n");
+		png_set_error_fn(read_ptr, (void*)outfilename, NULL, png_warning_cb);
 
 		png_infop write_info = png_create_info_struct(write_ptr);
 		if(!write_info) {
