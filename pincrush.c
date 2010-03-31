@@ -269,7 +269,7 @@ void usage(char *argv0) {
 	printf("        %s [-v] [-c#] <infile> <outfile>\n\n", argv0);
 	printf("  -i	In-place mode. One of -i or outfile is required.\n");
 	printf("  -v	Verbose mode.\n");
-	printf("  -c#	(EXPERIMENTAL) Process # rows at a time to save memory. The default is 8.\n");
+	printf("  -c#	Process # rows at a time. The default is 8.\n");
 	printf("     	Use 0 to disable chunk mode (uses more memory, reads the entire image into memory).\n");
 	printf("  -h	Display this help text.\n");
 }
