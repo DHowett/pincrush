@@ -8,7 +8,7 @@
 
 static bool inplace = false;
 static bool verbose = false;
-static bool chunked = false;
+static bool chunked = true;
 static unsigned int global_num_rows = 8;
 
 void copy(char *inf, char *outf) {
@@ -45,16 +45,6 @@ void swap_and_premultiply_alpha_transform(png_structp ptr, png_row_infop row_inf
 		data[x+1] = (g*a) / 0xff;
 		data[x+2] = (r*a) / 0xff;
 	}
-}
-
-void usage(char *argv0) {
-	printf("Syntax: %s [-v] [-c#] -i <infile> [infile ...]\n", argv0);
-	printf("        %s [-v] [-c#] <infile> <outfile>\n\n", argv0);
-	printf("  -i	In-place mode. One of -i or outfile is required.\n");
-	printf("  -v	Verbose mode.\n");
-	printf("  -c#	(EXPERIMENTAL) Process # rows at a time to save memory. Try 8.\n");
-	printf("     	The default is to process the whole image. It avoids zlib crashes.\n");
-	printf("  -h	Display this help text.\n");
 }
 
 void crush(char *infilename, char *outfilename) {
@@ -274,6 +264,16 @@ out:
 	free(outfilename);
 }
 
+void usage(char *argv0) {
+	printf("Syntax: %s [-v] [-c#] -i <infile> [infile ...]\n", argv0);
+	printf("        %s [-v] [-c#] <infile> <outfile>\n\n", argv0);
+	printf("  -i	In-place mode. One of -i or outfile is required.\n");
+	printf("  -v	Verbose mode.\n");
+	printf("  -c#	(EXPERIMENTAL) Process # rows at a time to save memory. The default is 8.\n");
+	printf("     	Use 0 to disable chunk mode (uses more memory, reads the entire image into memory).\n");
+	printf("  -h	Display this help text.\n");
+}
+
 int main(int argc, char **argv, char **envp) {
 	char *argv0 = argv[0];
 	char optflag;
@@ -288,6 +288,8 @@ int main(int argc, char **argv, char **envp) {
 			case 'c':
 				chunked = true;
 				global_num_rows = (unsigned int)strtoul(optarg, NULL, 0);
+				if(global_num_rows == 0)
+					chunked = false;
 				break;
 			case '?':
 			case 'h':
