@@ -68,34 +68,35 @@ int main(int argc, char **argv, char **envp) {
 
 	FILE *fp_in = fopen(infilename, "rb");
 	if(!fp_in) {
-		ERR("Could not open %s.\n", infilename);
+		ERR("Error: could not open %s.\n", infilename);
 	}
 
 	png_byte header[8];
 	fread(header, 1, 8, fp_in);
 	if(png_sig_cmp(header, 0, 8) != 0) {
-		ERR("This is not a PNG file.\n");
+		ERR("Error: %s is not a valid PNG file.\n", infilename);
 	}
 
 	png_structp read_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if(!read_ptr) ERR("Something bad happened.\n");
+	if(!read_ptr) ERR("Error: failed to init libpng for reading.\n");
 
 	png_infop read_info = png_create_info_struct(read_ptr);
 	if(!read_info) {
 		png_destroy_read_struct(&read_ptr, NULL, NULL);
-		ERR("Something bad happened.\n");
+		ERR("Error: failed to init libpng for reading.\n");
 	}
 
 	png_infop read_end = png_create_info_struct(read_ptr);
 	if(!read_end) {
 		png_destroy_read_struct(&read_ptr, &read_info, NULL);
-		ERR("Something bad happened.\n");
+		ERR("Error: failed to init libpng for reading.\n");
 	}
 
 	// Maybe error stuff (setjmp?)
 
 	if(setjmp(png_jmpbuf(read_ptr))) {
-		ERR("What the hell R.\n");
+		fclose(fp_in);
+		ERR("Error: error reading PNG.\n");
 		return 1;
 	}
 
@@ -171,22 +172,24 @@ int main(int argc, char **argv, char **envp) {
 	/**************WRITE**************/
 	FILE *fp_out = fopen(outfilename, "wb");
 	png_structp write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if(!write_ptr) ERR("Something bad happened.\n");
+	if(!write_ptr) ERR("Error: failed to init libpng for writing.\n");
 
 	png_infop write_info = png_create_info_struct(write_ptr);
 	if(!write_info) {
 		png_destroy_write_struct(&write_ptr, NULL);
-		ERR("Something bad happened.\n");
+		ERR("Error: failed to init libpng for writing.\n");
 	}
 
 	png_infop write_end = png_create_info_struct(write_ptr);
 	if(!write_end) {
 		png_destroy_write_struct(&write_ptr, &write_info);
-		ERR("Something bad happened.\n");
+		ERR("Error: failed to init libpng for writing.\n");
 	}
 
 	if(setjmp(png_jmpbuf(write_ptr))) {
-		ERR("What the hell W.\n");
+		fclose(fp_out);
+		unlink(outfilename);
+		ERR("Error: error writing PNG.\n");
 		return 1;
 	}
 
