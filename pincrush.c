@@ -231,26 +231,27 @@ void crush(char *infilename, char *outfilename) {
 			free(read_data);
 		} else {
 			int number_of_passes = 1;
-			if(interlace_type == PNG_INTERLACE_ADAM7)
+			if(interlace_type == PNG_INTERLACE_ADAM7) {
 				number_of_passes = png_set_interlace_handling(read_ptr);
+				png_set_interlace_handling(write_ptr);
+			}
 			int remaining_rows = height;
 			unsigned int numrows = remaining_rows > global_num_rows ? global_num_rows : remaining_rows;
 			int rowbytes = png_get_rowbytes(read_ptr, read_info);
-			png_bytep row = calloc(rowbytes, numrows);
+			rowbytes += 16;
+			png_bytep row = png_malloc(read_ptr, rowbytes * numrows);
 			png_bytep rowpointers[numrows];
-			for(unsigned int i = 0; i < numrows; i++) {
+			for(unsigned int i = 0; i < numrows; i++)
 				rowpointers[i] = row+(i*rowbytes);
-			}
-			while(remaining_rows > 0) {
-				memset(row, 0, rowbytes * numrows);
-				for(int i = 0; i < number_of_passes; i++) {
+			for(int pass = 0; pass < number_of_passes; pass++) {
+				while(remaining_rows > 0) {
 					png_read_rows(read_ptr, rowpointers, NULL, numrows);
 					png_write_rows(write_ptr, rowpointers, numrows);
+					remaining_rows -= numrows;
+					numrows = remaining_rows > global_num_rows ? global_num_rows : remaining_rows;
 				}
-				remaining_rows -= numrows;
-				numrows = remaining_rows > global_num_rows ? global_num_rows : remaining_rows;
 			}
-			free(row);
+			png_free(read_ptr, row);
 		}
 
 		png_read_end(read_ptr, read_end);
