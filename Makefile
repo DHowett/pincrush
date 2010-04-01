@@ -8,3 +8,9 @@ SUBPROJECTS = libpng
 include framework/makefiles/common.mk
 include framework/makefiles/aggregate.mk
 include framework/makefiles/tool.mk
+
+ifeq ($(FW_TARGET_NAME),macosx)
+export ADDITIONAL_LDFLAGS+=-mmacosx-version-min=10.4
+export ADDITIONAL_CFLAGS+=-mmacosx-version-min=10.4
+export ARCHS=i386 ppc x86_64
+endif
