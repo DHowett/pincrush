@@ -305,13 +305,16 @@ out:
 }
 
 void usage(char *argv0) {
+	printf("pincrush %s\n", VERSION);
 	printf("Syntax: %s [-v] [-c#] -i <infile> [infile ...]\n", argv0);
 	printf("        %s [-v] [-c#] <infile> <outfile>\n\n", argv0);
 	printf("  -i	In-place mode. One of -i or outfile is required.\n");
 	printf("  -v	Verbose mode. More 'v's = more verbose! Up to three. Five is right out.\n");
 	printf("  -c#	Process # rows at a time. The default is 8.\n");
 	printf("     	Use 0 to disable chunk mode (uses more memory, reads the entire image into memory).\n");
-	printf("  -h	Display this help text.\n");
+	printf("  -h	Display this help text.\n\n");
+	printf("pincrush comes with no warranty, neither express nor implied. If it blows up\nyour themes, eats your children, or causes you bodily harm,\nall you'll get is a little pity and maybe an apology.\n");
+	printf("Please report any pincrush bugs to <dustin@howett.net>, possibly including\na copy of the offending PNG file.\n");
 }
 
 int main(int argc, char **argv, char **envp) {
