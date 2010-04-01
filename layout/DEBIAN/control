@@ -1,9 +1,11 @@
-Package: net.howett.pincrush
+Package: pincrush
 Name: pincrush
-Version: 0.0.1
+Version: 0.0.2
 Architecture: iphoneos-arm
 Description: optimize PNGs just like Apple does
- pincrush is an open implementation of an Apple-style iPhoneOS PNG Optimizer.
+ pincrush is an open, cross-platform alternative to Apple's proprietary PNG mangler, to optimize PNGs for display on iPhoneOS devices.
 Maintainer: Dustin Howett <dustin@howett.net>
 Author: Dustin Howett <dustin@howett.net>
-Section: Tweaks
+Section: Utilities
+Homepage: http://howett.net/pincrush
+Tag: purpose::console, role::hacker
