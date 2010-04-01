@@ -4,4 +4,4 @@ png_CFLAGS = -DHAVE_CONFIG_H -I. -DPNG_CONFIGURE_LIBPNG -DPNG_NO_PROGRESSIVE_REA
 png_LDFLAGS = -lz
 
 include ../framework/makefiles/common.mk
-include ../framework/makefiles/library.mk
+include ../framework/makefiles/staticlib.mk
