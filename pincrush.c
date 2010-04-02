@@ -180,6 +180,7 @@ void crush(char *infilename, char *outfilename) {
 		orig_color_type = color_type;
 
 		if(color_type == PNG_COLOR_TYPE_PALETTE) {
+			INFO(LEVEL_INFO, "Converting Palette to RGB\n");
 			png_set_palette_to_rgb(read_ptr);
 		} else if(color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
 			if(bitdepth < 8)
@@ -187,8 +188,10 @@ void crush(char *infilename, char *outfilename) {
 			INFO(LEVEL_INFO, "Converting Greyscale image to RGB\n");
 			png_set_gray_to_rgb(read_ptr);
 		}
-		if(png_get_valid(read_ptr, read_info, PNG_INFO_tRNS))
+		if(png_get_valid(read_ptr, read_info, PNG_INFO_tRNS)) {
+			INFO(LEVEL_INFO, "Converting tRNS chunk to Alpha values\n");
 			png_set_tRNS_to_alpha(read_ptr);
+		}
 		else if(!(color_type & PNG_COLOR_MASK_ALPHA)) {
 			// Expand, adding an opaque alpha channel.
 			INFO(LEVEL_INFO, "Adding opaque alpha channel.\n");
@@ -243,8 +246,8 @@ void crush(char *infilename, char *outfilename) {
 		//png_unknown_chunkp cgbi = (png_unknown_chunkp)png_malloc(write_ptr, sizeof(png_unknown_chunk));
 		png_byte cname[] = {'C', 'g', 'B', 'I', '\0'};
 		png_byte cdata[] = {0x50, 0x00, 0x20, 0x06};
-		if(orig_color_type == PNG_COLOR_TYPE_RGBA) {
-			// I'm not sure, but if the input colortype is RGBA, CgBI[3] is 0x02 instead of 0x06.
+		if(orig_color_type & PNG_COLOR_MASK_ALPHA || orig_color_type == PNG_COLOR_TYPE_PALETTE) {
+			// I'm not sure, but if the input colortype is alpha anything, CgBI[3] is 0x02 instead of 0x06.
 			// Strange, because 0x06 means RGBA and 0x02 does not.
 			// But, Mimick this behaviour. Otherwise, our alpha channel is ignored.
 			cdata[3] = 0x02;
