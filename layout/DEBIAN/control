@@ -1,6 +1,6 @@
 Package: pincrush
 Name: pincrush
-Version: 0.9
+Version: 0.9.2
 Architecture: iphoneos-arm
 Description: optimize PNGs just like Apple does
  pincrush is an open, cross-platform alternative to Apple's proprietary PNG mangler, to optimize PNGs for display on iPhoneOS devices.
