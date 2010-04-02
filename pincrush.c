@@ -194,6 +194,10 @@ void crush(char *infilename, char *outfilename) {
 			INFO(LEVEL_INFO, "Adding opaque alpha channel.\n");
 			png_set_add_alpha(read_ptr, 0xff, PNG_FILLER_AFTER);
 		}
+		if(bitdepth == 16) {
+			INFO(LEVEL_INFO, "Stripping 16-bit samples.\n");
+			png_set_strip_16(read_ptr);
+		}
 
 		png_set_read_user_transform_fn(read_ptr, swap_and_premultiply_alpha_transform);
 		png_read_update_info(read_ptr, read_info);
