@@ -1,6 +1,7 @@
 ifeq ($(FW_TARGET_LOADED),)
 FW_TARGET_LOADED := 1
 FW_TARGET_NAME := macosx
+FW_TARGET_DEFINE := MACOSX
 
 SDKBINPATH ?= /usr/bin
 

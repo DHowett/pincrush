@@ -1,6 +1,7 @@
 ifeq ($(FW_TARGET_LOADED),)
 FW_TARGET_LOADED := 1
 FW_TARGET_NAME := iphonesimulator
+FW_TARGET_DEFINE := IPHONESIMULATOR
 
 SDKBINPATH ?= /Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin
 SDKVERSION ?= 3.0

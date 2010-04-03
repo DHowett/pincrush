@@ -1,6 +1,7 @@
 ifeq ($(FW_TARGET_LOADED),)
 FW_TARGET_LOADED := 1
 FW_TARGET_NAME := iphone
+FW_TARGET_DEFINE := IPHONE
 
 SDKBINPATH ?= /Developer/Platforms/iPhoneOS.platform/Developer/usr/bin
 SDKVERSION ?= 3.0

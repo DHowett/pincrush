@@ -13,4 +13,8 @@ ifeq ($(FW_TARGET_NAME),macosx)
 export ADDITIONAL_LDFLAGS+=-mmacosx-version-min=10.4
 export ADDITIONAL_CFLAGS+=-mmacosx-version-min=10.4
 export ARCHS=i386 ppc x86_64
+else ifeq ($(FW_TARGET_NAME),linux)
+export GO_EASY_ON_ME := 1
+else ifeq ($(FW_TARGET_NAME),windows)
+export GO_EASY_ON_ME := 1
 endif

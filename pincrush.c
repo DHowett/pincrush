@@ -9,6 +9,15 @@
 #define WRERR(...) { debuglog(LEVEL_ERROR, inplace?infilename:outfilename, __VA_ARGS__); goto out; }
 #define INFO(level, ...) { if(verbose) debuglog(level, infilename, __VA_ARGS__); }
 
+#ifndef PATH_MAX
+#include <fam.h>
+#endif
+
+#if TARGET_LINUX == 1
+#include <getopt.h>
+extern char *strdup (const char *s);
+#endif
+
 enum debuglevels {
 	LEVEL_ERROR = -1,
 	LEVEL_NONE = 0,
@@ -24,8 +33,8 @@ void debuglog(int level, char *filename, const char *format, ...) {
 	if(level > verbose && level != LEVEL_ERROR) return;
 	va_list args;
 	va_start(args, format);
-	char *out;
-	vasprintf(&out, format, args);
+	char *out = (char *)malloc(PATH_MAX);
+	vsprintf(out, format, args);
 	if(!filename)
 		fprintf(stderr, "%s", out);
 	else
@@ -80,7 +89,8 @@ void swap_and_premultiply_alpha_transform(png_structp ptr, png_row_infop row_inf
 
 void crush(char *infilename, char *outfilename) {
 	if(!outfilename) {
-		asprintf(&outfilename, "%s.crush", infilename);
+		outfilename = (char *)malloc(PATH_MAX);
+		sprintf(outfilename, "%s.crush", infilename);
 	}
 
 	FILE *fp_in = NULL, *fp_out = NULL;
