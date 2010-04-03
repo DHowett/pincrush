@@ -20,6 +20,5 @@ export GO_EASY_ON_ME := 1
 pincrush_CFLAGS += -I./zlib
 pincrush_LDFLAGS = zlib/$(FW_OBJ_DIR_NAME)/z.a
 #pincrush_OBJ_FILES += zlib/$(FW_OBJ_DIR_NAME)/z.a $(error wtf)
-OBJ_FILES_TO_LINK += $(error $(OBJ_FILES_TO_LINK))
 SUBPROJECTS += zlib
 endif
