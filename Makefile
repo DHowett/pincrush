@@ -1,9 +1,8 @@
 TOOL_NAME = pincrush
 pincrush_C_FILES = pincrush.c
-pincrush_CFLAGS = -I./libpng -Wno-format -std=c99 -DVERSION="\"$(shell grep Version "$(FW_PROJECT_DIR)/layout/DEBIAN/control" | cut -d' ' -f2)\""
-pincrush_LDFLAGS = -lz
-pincrush_OBJ_FILES = libpng/$(FW_OBJ_DIR_NAME)/png.a
-SUBPROJECTS = libpng
+pincrush_CFLAGS = -I./libpng -I./zlib -Wno-format -std=c99 -DVERSION="\"$(shell grep Version "$(FW_PROJECT_DIR)/layout/DEBIAN/control" | cut -d' ' -f2)\""
+pincrush_OBJ_FILES = libpng/$(FW_OBJ_DIR_NAME)/png.a zlib/$(FW_OBJ_DIR_NAME)/z.a
+SUBPROJECTS = libpng zlib
 
 include framework/makefiles/common.mk
 include framework/makefiles/aggregate.mk
