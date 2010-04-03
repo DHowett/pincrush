@@ -6,8 +6,6 @@ pincrush_OBJ_FILES = libpng/$(FW_OBJ_DIR_NAME)/png.a
 SUBPROJECTS = libpng
 
 include framework/makefiles/common.mk
-include framework/makefiles/aggregate.mk
-include framework/makefiles/tool.mk
 
 ifeq ($(FW_TARGET_NAME),macosx)
 export ADDITIONAL_LDFLAGS+=-mmacosx-version-min=10.4
@@ -18,7 +16,10 @@ export GO_EASY_ON_ME := 1
 else ifeq ($(FW_TARGET_NAME),windows)
 export GO_EASY_ON_ME := 1
 pincrush_CFLAGS += -I./zlib
-pincrush_LDFLAGS = zlib/$(FW_OBJ_DIR_NAME)/z.a
-#pincrush_OBJ_FILES += zlib/$(FW_OBJ_DIR_NAME)/z.a $(error wtf)
+pincrush_LDFLAGS =
+pincrush_OBJ_FILES += zlib/$(FW_OBJ_DIR_NAME)/z.a
 SUBPROJECTS += zlib
 endif
+
+include framework/makefiles/aggregate.mk
+include framework/makefiles/tool.mk
