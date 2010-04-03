@@ -7,7 +7,11 @@ SUBPROJECTS = libpng
 
 include framework/makefiles/common.mk
 
-ifeq ($(FW_TARGET_NAME),macosx)
+ifeq ($(FW_TARGET_NAME)$(FW_PLATFORM_NAME),iphonemacosx)
+export SDKVERSION=2.0
+export TARGET_CC=$(SDKBINPATH)/gcc-4.0
+export TARGET_CXX=$(SDKBINPATH)/gcc-4.0
+else ifeq ($(FW_TARGET_NAME),macosx)
 export ADDITIONAL_LDFLAGS+=-mmacosx-version-min=10.4
 export ADDITIONAL_CFLAGS+=-mmacosx-version-min=10.4
 export ARCHS=i386 ppc x86_64
