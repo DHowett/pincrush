@@ -1,7 +1,0 @@
-ifeq ($(FW_PLATFORM_LOADED),)
-FW_PLATFORM_LOADED := 1
-FW_PLATFORM_NAME := iphone
-
-FW_PLATFORM_DEFAULT_TARGET := native
-DU_EXCLUDE = --exclude
-endif
