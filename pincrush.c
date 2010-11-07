@@ -10,7 +10,7 @@
 #define INFO(level, ...) { if(verbose) debuglog(level, infilename, __VA_ARGS__); }
 
 #ifndef PATH_MAX
-#include <fam.h>
+#include <linux/limits.h>
 #endif
 
 #if TARGET_LINUX == 1
