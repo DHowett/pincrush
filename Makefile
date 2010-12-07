@@ -1,3 +1,8 @@
+ifeq ($(shell [ -f ./framework/makefiles/common.mk ] || echo 0),0)
+all clean package install:
+	@git submodule update --init
+	@$(MAKE) $(MAKEFLAGS) MAKELEVEL=0 $@
+else
 TOOL_NAME = pincrush
 pincrush_C_FILES = pincrush.c
 pincrush_CFLAGS = -I./libpng -Wno-format -std=c99 -DVERSION="\"$(shell grep Version "$(FW_PROJECT_DIR)/layout/DEBIAN/control" | cut -d' ' -f2)\""
@@ -24,3 +29,4 @@ else ifeq ($(FW_TARGET_NAME),windows)
 endif
 
 include framework/makefiles/tool.mk
+endif
